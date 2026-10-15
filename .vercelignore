@@ -1,0 +1,7 @@
+.git/
+.astro/
+dist/
+node_modules/
+tools/
+.env
+.env.*

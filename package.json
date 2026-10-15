@@ -1,0 +1,23 @@
+{
+  "name": "monke-http",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "images": "node tools/image-manager/server.mjs",
+    "test:images": "node --test tools/image-manager/*.test.mjs"
+  },
+  "dependencies": {
+    "@astrojs/vercel": "^8.2.11",
+    "@lucide/astro": "^1.57.0",
+    "@tailwindcss/vite": "^4.3.3",
+    "astro": "^5.15.0",
+    "tailwindcss": "^4.3.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5"
+  }
+}

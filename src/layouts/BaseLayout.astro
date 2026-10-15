@@ -1,0 +1,54 @@
+---
+import '../styles/global.css';
+import { Dices, Moon, Sun } from '@lucide/astro';
+import logo from '../../public/images/banana-cat-logo.svg?raw';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = 'Cute monkeys for HTTP status codes.' } = Astro.props;
+const controlClass = 'inline-flex size-10 cursor-pointer items-center justify-center rounded-full border border-[#d7c6b8] text-[#6f5b50] no-underline transition hover:border-[#b39222] hover:bg-[#ffe135]/15 hover:text-[#685514] focus-visible:outline-2 focus-visible:outline-[#b39222] focus-visible:outline-offset-2 dark:border-[#695347] dark:text-[#ffe135] dark:hover:border-[#ffe135] dark:hover:bg-[#ffe135]/10';
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <link rel="icon" href="/images/banana-cat-logo.ico" type="image/x-icon" />
+    <script is:inline>
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme !== 'light') document.documentElement.classList.add('dark');
+    </script>
+    <title>{title}</title>
+  </head>
+  <body class="min-w-[320px] bg-[radial-gradient(circle_at_85%_4%,#f6d58a_0_12rem,transparent_12.1rem),#f8f2e9] font-sans text-[#33251f] antialiased dark:bg-[#1c1816] dark:text-[#f8f2e9]">
+    <header class="sticky top-0 z-10 w-full border-b border-[#e5d8c9]/80 bg-[#f8f2e9]/95 py-7 backdrop-blur-xl dark:border-[#4a3a32]/80 dark:bg-[#1c1816]/95 max-[760px]:py-5">
+      <div class="mx-auto flex w-full max-w-[1120px] items-center justify-between px-5 max-[760px]:px-3.5">
+        <a class="inline-flex items-center gap-3 font-mono text-[1.5rem] font-bold tracking-[-.05em] text-[#33251f] no-underline dark:text-[#f8f2e9] max-[760px]:gap-2 max-[760px]:text-[1.1rem]" href="/" aria-label="monke.http home"><span class="block size-14 shrink-0 overflow-hidden rounded-full [&_svg]:size-full [&_rect]:fill-none [&_path]:fill-[#33251f] dark:[&_path]:fill-[#ffe135] max-[760px]:size-11" aria-hidden="true" set:html={logo} /><span>monke<span class="text-[#947711] dark:text-[#ffe135]">.</span>http</span></a>
+        <div class="flex items-center gap-2">
+          <a class={controlClass} href="/random" aria-label="Open a random monkey" title="Random monkey"><Dices size={18} strokeWidth={2} aria-hidden="true" /></a>
+          <button class={controlClass} id="theme-toggle" type="button" aria-label="Switch to dark mode" aria-pressed="false" title="Toggle color theme"><Moon class="dark:hidden" size={18} strokeWidth={2} aria-hidden="true" /><Sun class="hidden dark:block" size={18} strokeWidth={2} aria-hidden="true" /></button>
+        </div>
+      </div>
+    </header>
+    <slot />
+    <script is:inline>
+      const themeToggle = document.querySelector('#theme-toggle');
+      const root = document.documentElement;
+      const updateThemeToggle = () => {
+        const isDark = root.classList.contains('dark');
+        themeToggle?.setAttribute('aria-pressed', String(isDark));
+        themeToggle?.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+      };
+      themeToggle?.addEventListener('click', () => {
+        const isDark = root.classList.toggle('dark');
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        updateThemeToggle();
+      });
+      updateThemeToggle();
+    </script>
+  </body>
+</html>

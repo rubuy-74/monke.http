@@ -1,0 +1,81 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import StatusCard from '../components/StatusCard.astro';
+import { getVisibleStatuses } from '../lib/visible-statuses';
+import { Copy, X } from '@lucide/astro';
+
+const groupsNums = ['1XX', '2XX', '3XX', '4XX', '5XX'];
+const groups = ['Informational', 'Success', 'Redirection', 'Client errors', 'Server errors'];
+const colors = ['text-[#6b9ed0]', 'text-[#78a966]', 'text-[#e0ae40]', 'text-[#d4b42d]', 'text-[#947711]'];
+const statuses = await getVisibleStatuses();
+---
+<BaseLayout title="monke.http">
+  <main class="mx-auto w-full max-w-[1120px] px-5 pb-20 max-[760px]:px-3.5">
+    <section class="py-8" aria-labelledby="usage-heading">
+      <h1 id="usage-heading" class="mb-4 text-xl font-semibold">Usage:</h1>
+      <div class="flex items-center justify-between gap-4 rounded-sm border border-[#e5d8c9] bg-[#fffaf2] px-4 py-5 dark:border-[#4a3a32] dark:bg-[#2a221f]">
+        <code class="min-w-0 break-all text-sm sm:text-base">https://monke.http.rubuy.me/[status_code]</code>
+        <button id="copy-url" type="button" class="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-sm bg-[#ffe135] text-[#33251f] hover:bg-[#efd02c] focus-visible:outline-2 focus-visible:outline-offset-4" aria-label="Copy image URL template" title="Copy URL"><Copy size={19} aria-hidden="true" /></button>
+      </div>
+      <p id="copy-feedback" class="mt-2 min-h-5 text-xs text-[#816d60] dark:text-[#cbb7a8]" role="status"></p>
+    </section>
+
+    <div>
+      {groups.map((group, index) => statuses.some(status => status.group === group) && (
+        <section class="mb-16 max-[760px]:mb-[46px]" aria-labelledby={group.toLowerCase().replace(' ', '-')}>
+					<h2 class="mb-[19px] flex items-center gap-[11px] font-mono text-[.75rem] font-medium uppercase tracking-[.08em] text-[#816d60] dark:text-[#cbb7a8]" id={group.toLowerCase().replace(' ', '-')}><span class:list={[colors[index]]}>{groupsNums[index]}</span>{group}</h2>
+          <div class="grid grid-cols-4 gap-4 max-[760px]:grid-cols-2 max-[760px]:gap-3">
+            {statuses.filter((status) => status.group === group).map((status) => <StatusCard status={status} />)}
+          </div>
+        </section>
+      ))}
+    </div>
+    {statuses.length === 0 && <p class="py-12 text-[#816d60] dark:text-[#cbb7a8]">No monkey pictures published yet. Check back soon.</p>}
+
+    <dialog id="status-dialog" aria-labelledby="dialog-title" class="m-auto max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-[680px] overflow-y-auto border border-[#e5d8c9] bg-[#fffaf2] p-5 text-[#33251f] backdrop:bg-black/70 dark:border-[#4a3a32] dark:bg-[#2a221f] dark:text-[#f8f2e9]">
+      <div class="mb-4 flex items-center justify-between gap-4">
+        <h2 id="dialog-title" class="font-mono text-lg font-semibold"></h2>
+        <form method="dialog"><button class="flex size-9 cursor-pointer items-center justify-center hover:bg-black/5 dark:hover:bg-white/10" aria-label="Close description"><X size={20} aria-hidden="true" /></button></form>
+      </div>
+      <img id="dialog-image" class="mb-6 w-full" alt="" />
+      <h3 class="mb-3 text-lg font-semibold">Description</h3>
+      <div id="dialog-description" class="space-y-4 leading-relaxed text-[#5d4b40] dark:text-[#d9c8bb]"></div>
+      <a id="dialog-source" class="mt-5 inline-block font-mono text-xs text-[#947711] underline dark:text-[#ffe135]">MDN source</a>
+    </dialog>
+
+    <footer class="mt-5 border-t border-[#e5d8c9] py-6 text-center font-mono text-xs text-[#9a8576] dark:border-[#4a3a32] dark:text-[#ad9888]">
+      <p>made by rubuy with 🐒</p>
+    </footer>
+  </main>
+  <script is:inline define:vars={{ statuses }}>
+    document.querySelector('#copy-url').addEventListener('click', async () => {
+      const feedback = document.querySelector('#copy-feedback');
+      try {
+        await navigator.clipboard.writeText('https://monke.http.rubuy.me/[status_code]');
+        feedback.textContent = 'Copied.';
+      } catch {
+        feedback.textContent = 'Select the URL above to copy it.';
+      }
+    });
+    const dialog = document.querySelector('#status-dialog');
+    document.querySelectorAll('[data-status-code]').forEach(link => {
+      link.addEventListener('click', event => {
+        if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        const status = statuses.find(status => String(status.code) === link.dataset.statusCode);
+        if (!status || typeof dialog.showModal !== 'function') return;
+        event.preventDefault();
+        document.querySelector('#dialog-title').textContent = `${status.code} ${status.phrase}`;
+        const image = document.querySelector('#dialog-image');
+        image.src = `/${status.code}`;
+        image.alt = `${status.code} ${status.phrase} monkey`;
+        document.querySelector('#dialog-description').replaceChildren(...status.description.map(text => {
+          const paragraph = document.createElement('p');
+          paragraph.textContent = text;
+          return paragraph;
+        }));
+        document.querySelector('#dialog-source').href = status.source;
+        dialog.showModal();
+      });
+    });
+  </script>
+</BaseLayout>

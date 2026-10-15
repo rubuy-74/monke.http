@@ -1,0 +1,25 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getVisibleStatuses } from '../../lib/visible-statuses';
+import { ArrowLeft } from '@lucide/astro';
+
+const status = (await getVisibleStatuses()).find(status => String(status.code) === Astro.params.code);
+if (!status) Astro.response.status = 404;
+---
+<BaseLayout title={status ? `${status.code} ${status.phrase}` : 'Status not found | monke.http'} description={status?.description[0]}>
+  {status ? (
+    <main class="grid min-h-screen place-items-center px-3.5 pb-[110px] pt-7">
+      <article class="w-full max-w-[680px] rounded-3xl border border-[#eadfd1] bg-[#fffaf2] p-[18px] shadow-[0_10px_0_#eadfd1] dark:border-[#4a3a32] dark:bg-[#2a221f] dark:shadow-[0_10px_0_#1b1513]">
+        <a class="mb-[18px] mt-0 inline-flex size-9 items-center justify-center rounded-full text-[#947711] no-underline hover:bg-[#ffe135]/15 focus-visible:outline-2 focus-visible:outline-[#b39222] focus-visible:outline-offset-2 dark:text-[#ffe135] dark:hover:bg-[#ffe135]/10" href="/" aria-label="Back to all monkeys" title="Back to all monkeys"><ArrowLeft size={17} strokeWidth={2} aria-hidden="true" /></a>
+        <img class="block w-full rounded-[15px]" src={`/${status.code}`} alt={`${status.code} ${status.phrase} monkey`} />
+        <p class="mb-0 mt-7 font-mono text-xs uppercase tracking-[.13em] text-[#947711] dark:text-[#ffe135]">HTTP {status.code}</p>
+        <h1 class="mb-6 mt-[5px] text-[clamp(2rem,7vw,4rem)] font-bold leading-[.95] tracking-[-.08em]">{status.phrase}</h1>
+        <h2 class="mb-3 font-sans text-xl font-semibold">Description</h2>
+        {status.description.map((paragraph) => <p class="text-base leading-[1.65] text-[#5d4b40] dark:text-[#d9c8bb]">{paragraph}</p>)}
+        <a class="mt-2.5 inline-block font-mono text-xs text-[#947711] hover:underline focus-visible:underline dark:text-[#ffe135]" href={status.source}>MDN source</a>
+      </article>
+    </main>
+  ) : (
+    <main class="grid min-h-screen place-items-center px-3.5 pb-[110px] pt-7"><article class="w-full max-w-[680px] rounded-3xl border border-[#eadfd1] bg-[#fffaf2] p-[18px] shadow-[0_10px_0_#eadfd1] dark:border-[#4a3a32] dark:bg-[#2a221f] dark:shadow-[0_10px_0_#1b1513]"><h1 class="text-4xl font-bold">Not Found</h1></article></main>
+  )}
+</BaseLayout>
