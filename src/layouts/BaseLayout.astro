@@ -29,7 +29,7 @@ const controlClass = 'inline-flex size-10 cursor-pointer items-center justify-ce
       <div class="mx-auto flex w-full max-w-[1120px] items-center justify-between px-5 max-[760px]:px-3.5">
         <a class="inline-flex items-center gap-3 font-mono text-[1.5rem] font-bold tracking-[-.05em] text-[#33251f] no-underline dark:text-[#f8f2e9] max-[760px]:gap-2 max-[760px]:text-[1.1rem]" href="/" aria-label="monke.http home"><span class="block size-14 shrink-0 overflow-hidden rounded-full [&_svg]:size-full [&_rect]:fill-none [&_path]:fill-[#33251f] dark:[&_path]:fill-[#ffe135] max-[760px]:size-11" aria-hidden="true" set:html={logo} /><span>monke<span class="text-[#947711] dark:text-[#ffe135]">.</span>http</span></a>
         <div class="flex items-center gap-2">
-          <a class={controlClass} href="/random" aria-label="Open a random monkey" title="Random monkey"><Dices size={18} strokeWidth={2} aria-hidden="true" /></a>
+          <button class={controlClass} id="random-monkey" type="button" aria-label="Open a random monkey" title="Random monkey" aria-haspopup="dialog" aria-controls="status-dialog"><Dices size={18} strokeWidth={2} aria-hidden="true" /></button>
           <button class={controlClass} id="theme-toggle" type="button" aria-label="Switch to dark mode" aria-pressed="false" title="Toggle color theme"><Moon class="dark:hidden" size={18} strokeWidth={2} aria-hidden="true" /><Sun class="hidden dark:block" size={18} strokeWidth={2} aria-hidden="true" /></button>
         </div>
       </div>

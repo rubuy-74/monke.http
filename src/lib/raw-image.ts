@@ -1,12 +1,13 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { getStatus } from './statuses';
+import { notFoundResponse } from './not-found';
 
 export async function rawImageResponse(code: string) {
   const status = getStatus(code);
 
   if (!status) {
-    return new Response('Not found', { status: 404 });
+    return notFoundResponse();
   }
 
   for (const [extension, contentType] of [
@@ -26,7 +27,7 @@ export async function rawImageResponse(code: string) {
     }
 
 		console.log(contentType)
-    return new Response(image, {
+    return new Response(new Uint8Array(image), {
       headers: {
         'Cache-Control': 'no-cache',
         'Content-Type': contentType,
@@ -34,5 +35,5 @@ export async function rawImageResponse(code: string) {
     });
   }
 
-  return new Response('Image not found', { status: 404 });
+  return notFoundResponse();
 }

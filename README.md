@@ -6,8 +6,9 @@ npm run dev
 ```
 
 Development shows all status codes, including the SVG placeholders. Gallery
-cards open description dialogs; `/description/404` opens a full page, and `/404`
-returns the image itself.
+cards and the random button open the same description dialog. There are no
+separate description pages; `/404` returns the image itself. The editable usage
+bar opens or copies a chosen status's image URL.
 
 ## Pictures
 
@@ -25,7 +26,7 @@ Commit the selected JPEG/PNG files and status JSON, then deploy normally. The
 local manager and private alternatives are not part of the public application.
 
 Production only lists codes with a `.jpg`, `.jpeg`, or `.png` picture. Codes
-without one are also excluded from random navigation and description pages;
+without one are also excluded from random selection and description dialogs;
 their raw image endpoints return 404 instead of a placeholder. Numeric SVG
 placeholders are excluded from deployed static assets and server functions.
 The SVG logo and ICO favicon are retained. An empty collection shows a brief

@@ -7,11 +7,11 @@ interface Props {
 
 const { status } = Astro.props;
 ---
-<a class:list={[
-  'flex min-w-0 flex-col overflow-hidden rounded-[18px] border-[#eadfd1] bg-[#fffaf2] text-[#33251f] no-underline shadow-[0_7px_0_#eadfd1] transition hover:-translate-y-[5px] hover:shadow-[0_12px_0_#e4d4c2] focus-visible:outline-[3px] focus-visible:outline-[#b39222] focus-visible:outline-offset-4 motion-reduce:transition-none motion-reduce:hover:transform-none dark:border-[#4a3a32] dark:bg-[#2a221f] dark:text-[#f8f2e9] dark:shadow-[0_7px_0_#1b1513] dark:hover:shadow-[0_12px_0_#1b1513]',
+<button type="button" aria-haspopup="dialog" aria-controls="status-dialog" class:list={[
+  'flex min-w-0 cursor-pointer flex-col overflow-hidden rounded-[18px] border-[#eadfd1] bg-[#fffaf2] text-left text-[#33251f] shadow-[0_7px_0_#eadfd1] transition hover:-translate-y-[5px] hover:shadow-[0_12px_0_#e4d4c2] focus-visible:outline-[3px] focus-visible:outline-[#b39222] focus-visible:outline-offset-4 motion-reduce:transition-none motion-reduce:hover:transform-none dark:border-[#4a3a32] dark:bg-[#2a221f] dark:text-[#f8f2e9] dark:shadow-[0_7px_0_#1b1513] dark:hover:shadow-[0_12px_0_#1b1513]',
   status.code === 404 && 'border-[#b39222] dark:border-[#ffe135]',
-]} href={`/description/${status.code}`} data-status-code={status.code}>
-  <img class="block aspect-square w-full object-cover" src={`/${status.code}`} alt={`${status.code} ${status.phrase} monkey`} />
+]} data-status-code={status.code}>
+  <img class="block aspect-square w-full bg-[#f8f2e9] object-contain dark:bg-[#1c1816]" src={`/${status.code}`} alt={`${status.code} ${status.phrase} monkey`} />
   <strong class="px-[17px] pt-4 font-mono text-[1.5rem]">{status.code}</strong>
   <span class="min-h-12 px-[17px] pb-[15px] pt-1 text-[.9rem] text-[#816d60] dark:text-[#cbb7a8]">{status.phrase}</span>
-</a>
+</button>
