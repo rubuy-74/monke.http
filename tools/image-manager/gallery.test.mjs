@@ -4,7 +4,7 @@ import test from 'node:test';
 import vm from 'node:vm';
 
 const page = await readFile(new URL('../../src/pages/index.astro', import.meta.url), 'utf8');
-const script = page.match(/<script is:inline define:vars=\{\{ statuses \}\}>([\s\S]*?)<\/script>/)[1];
+const script = page.match(/<script is:inline define:vars=\{\{ statuses, usageOrigin \}\}>([\s\S]*?)<\/script>/)[1];
 
 function gallery(statuses) {
   const nodes = new Map();
@@ -42,6 +42,7 @@ function gallery(statuses) {
   let timerId = 0;
   vm.runInNewContext(script, {
     statuses,
+    usageOrigin: 'https://monke.rubuy.me',
     document: { querySelector: node, querySelectorAll: () => cards, createElement: () => ({}) },
     navigator: { clipboard: { writeText: async text => copied.push(text) } },
     window: { location: { origin: 'http://localhost:4321' } },
@@ -82,7 +83,7 @@ test('empty gallery disables random and copying uses the edited status code', as
   assert.equal(dialog.shown, 0);
   node('#status-code').value = '201';
   await node('#copy-url').listeners.click();
-  assert.equal(copied[0], 'http://localhost:4321/201');
+  assert.equal(copied[0], 'https://monke.rubuy.me/201');
   node('#usage-form').reportValidity = () => false;
   await node('#copy-url').listeners.click();
   assert.equal(copied.length, 1);

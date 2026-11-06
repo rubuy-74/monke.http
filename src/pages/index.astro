@@ -9,9 +9,9 @@ const groups = ['Informational', 'Success', 'Redirection', 'Client errors', 'Ser
 const colors = ['text-[#6b9ed0]', 'text-[#78a966]', 'text-[#e0ae40]', 'text-[#d4b42d]', 'text-[#947711]'];
 const statuses = await getVisibleStatuses();
 const exampleCode = statuses.some(status => status.code === 404) ? '404' : String(statuses[0]?.code ?? '404');
-const usageOrigin = import.meta.env.DEV ? Astro.url.origin : 'https://monke.http.rubuy.me';
+const usageOrigin = 'https://monke.rubuy.me';
 ---
-<BaseLayout title="monke.http">
+<BaseLayout title="http.monke">
   <main class="mx-auto w-full max-w-[1120px] px-5 pb-20 max-[760px]:px-3.5">
     <section class="py-8" aria-labelledby="usage-heading">
       <h1 id="usage-heading" class="mb-4 text-xl font-semibold">Usage:</h1>
@@ -57,7 +57,7 @@ const usageOrigin = import.meta.env.DEV ? Astro.url.origin : 'https://monke.http
       <p>made by rubuy with 🐒</p>
     </footer>
   </main>
-  <script is:inline define:vars={{ statuses }}>
+  <script is:inline define:vars={{ statuses, usageOrigin }}>
     const copyButton = document.querySelector('#copy-url');
     const copyIcon = document.querySelector('#copy-icon');
     const copiedIcon = document.querySelector('#copied-icon');
@@ -67,7 +67,7 @@ const usageOrigin = import.meta.env.DEV ? Astro.url.origin : 'https://monke.http
       const feedback = document.querySelector('#copy-feedback');
       const code = document.querySelector('#status-code').value;
       try {
-        await navigator.clipboard.writeText(new URL(`/${code}`, window.location.origin).href);
+        await navigator.clipboard.writeText(new URL(`/${code}`, usageOrigin).href);
         clearTimeout(copyResetTimer);
         copyIcon.classList.add('hidden');
         copiedIcon.classList.remove('hidden');

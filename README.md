@@ -1,4 +1,4 @@
-# monke.http
+# http.monke
 
 ```sh
 npm install
@@ -9,6 +9,7 @@ Development shows all status codes, including the SVG placeholders. Gallery
 cards and the random button open the same description dialog. There are no
 separate description pages; `/404` returns the image itself. The editable usage
 bar opens or copies a chosen status's image URL.
+The public image URL is `https://monke.rubuy.me/<status-code>`.
 
 ## Pictures
 
