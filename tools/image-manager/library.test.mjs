@@ -123,3 +123,84 @@ test('rejects invalid bytes, oversize uploads, unknown statuses, and invalid or 
   const otherStatus = await library.upload(200, jpeg);
   await assert.rejects(library.select(404, otherStatus), /not found/);
 });
+
+test('published framing works without private alternatives and never changes image bytes', async t => {
+  const { root, library } = await fixture(t);
+  await writeFile(path.join(root, 'public/images/404.jpg'), jpeg);
+  assert.deepEqual(await library.crop(404), { x: 50, y: 50 });
+  await library.saveCrop(404, null, '25', '80');
+  assert.deepEqual(await library.crop(404), { x: 25, y: 80 });
+  assert.deepEqual((await createLibrary({ root })).status(404).imagePosition, { x: 25, y: 80 });
+  assert.deepEqual((await library.active(404)).bytes, jpeg);
+  assert.deepEqual(await library.list(404), []);
+  await library.saveDescription(404, 'Updated text.');
+  assert.deepEqual(library.status(404).imagePosition, { x: 25, y: 80 });
+  assert.deepEqual(library.status(404).description, ['Updated text.']);
+});
+
+test('alternatives remember individual crops and selecting restores their framing', async t => {
+  const { root, library } = await fixture(t);
+  const first = await library.upload(404, jpeg);
+  const second = await library.upload(404, png);
+  await library.saveCrop(404, first, 0, 100);
+  assert.equal(library.status(404).imagePosition, undefined);
+  await library.select(404, first);
+  assert.deepEqual(library.status(404).imagePosition, { x: 0, y: 100 });
+  await library.saveCrop(404, null, 10, 90);
+  assert.deepEqual(await library.crop(404, first), { x: 10, y: 90 });
+  await library.select(404, second);
+  assert.deepEqual(library.status(404).imagePosition, { x: 50, y: 50 });
+  await library.saveCrop(404, first, 20, 70);
+  assert.deepEqual(library.status(404).imagePosition, { x: 50, y: 50 });
+  await library.select(404, first);
+  assert.deepEqual(library.status(404).imagePosition, { x: 20, y: 70 });
+  await library.saveCrop(404, first, 30, 60);
+  assert.deepEqual(library.status(404).imagePosition, { x: 30, y: 60 });
+  assert.deepEqual(await library.readAlternative(404, first), jpeg);
+  assert.deepEqual(await library.readAlternative(404, second), png);
+  assert.deepEqual((await library.active(404)).bytes, jpeg);
+  const reopened = await createLibrary({ root });
+  assert.deepEqual(await reopened.crop(404, first), { x: 30, y: 60 });
+  assert.deepEqual(await reopened.crop(404), { x: 30, y: 60 });
+});
+
+test('reset and deletion clear public framing but preserve other alternative crops', async t => {
+  const { root, library } = await fixture(t);
+  const first = await library.upload(404, jpeg);
+  const second = await library.upload(404, png);
+  await library.saveCrop(404, first, 5, 15);
+  await library.saveCrop(404, second, 85, 95);
+  await library.select(404, first);
+  await library.reset(404);
+  assert.deepEqual(await library.crop(404), { x: 50, y: 50 });
+  assert.deepEqual(await library.crop(404, first), { x: 5, y: 15 });
+  await library.select(404, first);
+  await library.delete(404, first);
+  assert.deepEqual(await library.crop(404), { x: 50, y: 50 });
+  assert.deepEqual(await library.crop(404, second), { x: 85, y: 95 });
+  const saved = JSON.parse(await readFile(path.join(root, 'src/data/statuses.json'), 'utf8'));
+  assert.ok(!Object.hasOwn(saved[0], 'imagePosition'));
+  const entries = await readdir(path.join(root, 'tools/image-manager/library/404'));
+  assert.ok(!entries.includes(`${first}.crop.json`));
+});
+
+test('invalid crop input cannot change metadata, image bytes, or unrelated status edits', async t => {
+  const { root, library } = await fixture(t);
+  const id = await library.upload(404, jpeg);
+  await library.select(404, id);
+  const file = path.join(root, 'src/data/statuses.json');
+  const external = JSON.parse(await readFile(file, 'utf8'));
+  external[1].description = ['Keep this external edit.'];
+  await writeFile(file, JSON.stringify(external));
+  await library.saveCrop(404, null, 25.5, 60);
+  const before = await readFile(file, 'utf8');
+  for (const value of ['', ' ', null, false, {}, NaN, Infinity, -1, 101, '50%;color:red']) {
+    await assert.rejects(library.saveCrop(404, id, value, 50), /between 0 and 100/);
+    await assert.rejects(library.saveCrop(404, id, 50, value), /between 0 and 100/);
+  }
+  await assert.rejects(library.saveCrop(404, '../secret', 50, 50), /Invalid alternative/);
+  await assert.rejects(library.saveCrop(999, null, 50, 50), /Unknown status/);
+  assert.equal(await readFile(file, 'utf8'), before);
+  assert.deepEqual(JSON.parse(before)[1].description, ['Keep this external edit.']);
+  assert.deepEqual((await library.active(404)).bytes, jpeg);
+});

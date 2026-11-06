@@ -1,6 +1,8 @@
 import statusesJson from '../data/statuses.json';
 
-export type Status = (typeof statusesJson)[number];
+export type Status = (typeof statusesJson)[number] & {
+  imagePosition?: { x: number; y: number };
+};
 
 export const statuses = statusesJson as Status[];
 

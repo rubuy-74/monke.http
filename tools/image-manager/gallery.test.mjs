@@ -6,6 +6,21 @@ import vm from 'node:vm';
 const page = await readFile(new URL('../../src/pages/index.astro', import.meta.url), 'utf8');
 const script = page.match(/<script is:inline define:vars=\{\{ statuses, usageOrigin \}\}>([\s\S]*?)<\/script>/)[1];
 
+test('gallery crops centered 4:3 previews while dialogs keep full bounded photos', async () => {
+  const card = await readFile(new URL('../../src/components/StatusCard.astro', import.meta.url), 'utf8');
+  const frame = card.match(/<span class="([^"]*aspect-\[4\/3\][^"]*)">\s*<img class="([^"]*)"/);
+  assert.ok(frame, 'gallery image has a 4:3 frame');
+  assert.match(frame[1], /\bw-full\b/);
+  assert.match(frame[1], /\bshrink-0\b/);
+  assert.match(frame[2], /\bsize-full\b/);
+  assert.match(frame[2], /\bobject-cover\b/);
+  assert.match(frame[2], /\bobject-center\b/);
+  assert.match(card, /objectPosition:.*status\.imagePosition\?\.x \?\? 50.*status\.imagePosition\?\.y \?\? 50/);
+  const dialogImage = page.match(/<img id="dialog-image" class="([^"]*)"/)[1];
+  assert.match(dialogImage, /\bobject-contain\b/);
+  assert.match(dialogImage, /h-\[min\(48dvh,400px\)\]/);
+});
+
 function gallery(statuses) {
   const nodes = new Map();
   function node(selector) {

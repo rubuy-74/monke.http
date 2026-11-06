@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import http from 'node:http';
-import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
+import vm from 'node:vm';
 import path from 'node:path';
 import os from 'node:os';
 import { createManagerServer, MAX_BODY } from './server.mjs';
@@ -20,7 +21,7 @@ async function fixture(t) {
   t.after(() => new Promise(resolve => { server.close(resolve); server.closeAllConnections(); }));
   const origin = `http://127.0.0.1:${server.address().port}`;
   const post = body => fetch(`${origin}/action`, { method: 'POST', headers: { Origin: origin }, body, redirect: 'manual' });
-  return { server, origin, post };
+  return { server, origin, post, root };
 }
 
 test('HTTP UI, upload/select/delete/reset, escaped flash, and whitelisted image routes', async t => {
@@ -93,6 +94,17 @@ test('rejects foreign Hosts and missing/foreign/mismatched Origins before parsin
   assert.equal(allowed, 303);
 });
 
+test('manager form pages preserve same-origin POST headers for browser submissions', async t => {
+  const { origin, post } = await fixture(t);
+  const page = await fetch(`${origin}/?code=404`);
+  assert.equal(page.headers.get('referrer-policy'), 'same-origin');
+  assert.match(await page.text(), /method="post" action="\/action" data-crop-form/);
+  const saved = await post(new URLSearchParams({ code: '404', action: 'crop', x: '30', y: '70' }));
+  assert.equal(saved.status, 303);
+  const updated = await (await fetch(`${origin}/?code=404`)).text();
+  assert.match(updated, /object-position:30% 70%/);
+});
+
 test('description dialog saves paragraphs and safely escapes edited text', async t => {
   const { origin, post } = await fixture(t);
   const description = 'New first paragraph.\n\n</textarea><script>alert(1)</script>';
@@ -153,4 +165,71 @@ test('bounds declared and streamed bodies, rejects malformed forms, and survives
   assert.equal((await post(invalidImage)).status, 303);
   assert.equal((await post(new URLSearchParams({ code: '404', action: 'reset' }))).status, 303);
   assert.equal((await fetch(origin)).status, 200);
+});
+
+test('crop editor saves active and alternative framing with validated HTTP forms', async t => {
+  const { origin, post, root } = await fixture(t);
+  const initial = await (await fetch(`${origin}/?code=404`)).text();
+  assert.match(initial, /data-crop-form/);
+  assert.match(initial, /aspect-ratio:4\/3/);
+  assert.match(initial, /object-position:50% 50%/);
+  const saved = await post(new URLSearchParams({ code: '404', action: 'crop', x: '20', y: '80' }));
+  assert.equal(saved.status, 303);
+  assert.match(await (await fetch(`${origin}/?code=404`)).text(), /object-position:20% 80%/);
+
+  const upload = new FormData();
+  upload.set('code', '404');
+  upload.set('action', 'upload');
+  upload.set('image', new Blob([Buffer.from('ffd8ffe000104a464946', 'hex')]), 'monkey.jpg');
+  await post(upload);
+  const collection = await (await fetch(`${origin}/?code=404`)).text();
+  const id = /\/library\/404\/([a-f0-9-]+\.jpg)/.exec(collection)[1];
+  const editor = await fetch(`${origin}/?code=404&crop=${id}`);
+  assert.equal(editor.status, 200);
+  assert.match(await editor.text(), /Editing this private alternative/);
+  const alternate = await post(new URLSearchParams({ code: '404', action: 'crop', id, x: '60', y: '10' }));
+  assert.match(alternate.headers.get('location'), /crop=/);
+  assert.match(await (await fetch(`${origin}/?code=404`)).text(), /object-position:20% 80%/);
+  await post(new URLSearchParams({ code: '404', action: 'select', id }));
+  assert.match(await (await fetch(`${origin}/?code=404`)).text(), /object-position:60% 10%/);
+  const metadata = JSON.parse(await readFile(path.join(root, 'src/data/statuses.json'), 'utf8'));
+  assert.deepEqual(metadata[0].imagePosition, { x: 60, y: 10 });
+  const invalid = await post(new URLSearchParams({ code: '404', action: 'crop', x: '101', y: '50' }));
+  assert.match(invalid.headers.get('location'), /between\+0\+and\+100/);
+  assert.equal((await fetch(`${origin}/?code=404&crop=../../secret`)).status, 400);
+  const missing = '00000000-0000-4000-8000-000000000000.jpg';
+  assert.equal((await fetch(`${origin}/?code=404&crop=${missing}`)).status, 404);
+  assert.equal((await fetch(`${origin}/library/404/${id}.crop.json`)).status, 400);
+});
+
+test('crop sliders update preview immediately and Center restores both positions', async t => {
+  const { origin } = await fixture(t);
+  const script = await (await fetch(`${origin}/manager.js`)).text();
+  const preview = { style: {} };
+  const outputs = {};
+  const listeners = {};
+  const center = {};
+  const form = {
+    elements: { x: { id: 'crop-x', value: '15' }, y: { id: 'crop-y', value: '85' } },
+    addEventListener: (event, listener) => { listeners[event] = listener; },
+    querySelector: selector => {
+      if (selector === '[data-center-crop]') return {
+        addEventListener: (event, listener) => { center[event] = listener; },
+      };
+      outputs[selector] ??= {};
+      return outputs[selector];
+    },
+  };
+  vm.runInNewContext(script, {
+    document: { querySelector: selector => selector === '[data-crop-form]' ? form : selector === '[data-crop-preview]' ? preview : null },
+  });
+  assert.equal(preview.style.objectPosition, '15% 85%');
+  form.elements.x.value = '30';
+  listeners.input();
+  assert.equal(preview.style.objectPosition, '30% 85%');
+  assert.equal(outputs['output[for="crop-x"]'].value, '30%');
+  center.click();
+  assert.equal(preview.style.objectPosition, '50% 50%');
+  assert.equal(form.elements.x.value, '50');
+  assert.equal(form.elements.y.value, '50');
 });

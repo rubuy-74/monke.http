@@ -115,18 +115,82 @@ export async function createLibrary({ root = defaultRoot } = {}) {
     }
   }
 
+  async function updateStatus(code, changes) {
+    const current = status(code);
+    const file = path.join(root, 'src/data/statuses.json');
+    const latest = JSON.parse(await readFile(file, 'utf8'));
+    const target = latest.find(entry => entry.code === current.code);
+    if (!target) throw invalid('Unknown status code.', 404);
+    Object.assign(target, changes);
+    await atomicWrite(file, JSON.stringify(latest, null, 2) + '\n');
+    Object.assign(current, changes);
+  }
+
+  function position(x, y) {
+    const values = [x, y].map(value => {
+      if (!['string', 'number'].includes(typeof value) || String(value).trim() === '') {
+        throw invalid('Crop positions must be numbers between 0 and 100.');
+      }
+      return Number(value);
+    });
+    if (values.some(value => !Number.isFinite(value) || value < 0 || value > 100)) {
+      throw invalid('Crop positions must be numbers between 0 and 100.');
+    }
+    return { x: values[0], y: values[1] };
+  }
+
+  async function crop(code, id = null) {
+    const current = status(code);
+    if (id === null) {
+      return current.imagePosition ? position(current.imagePosition.x, current.imagePosition.y) : { x: 50, y: 50 };
+    }
+    const file = alternativePath(code, id);
+    if (!(await regularFile(file))) throw invalid('Alternative not found.', 404);
+    try {
+      const saved = JSON.parse(await readFile(`${file}.crop.json`, 'utf8'));
+      return position(saved.x, saved.y);
+    } catch (error) {
+      if (error.code === 'ENOENT') return { x: 50, y: 50 };
+      throw error;
+    }
+  }
+
+  async function saveCrop(code, id, x, y) {
+    status(code);
+    const saved = position(x, y);
+    const selected = await selectedID(code);
+    if (id !== null) {
+      const file = alternativePath(code, id);
+      if (!(await regularFile(file))) throw invalid('Alternative not found.', 404);
+      await atomicWrite(`${file}.crop.json`, JSON.stringify(saved));
+    } else {
+      await active(code);
+      // Remember published framing when switching back to this alternative later.
+      if (selected !== null) {
+        const file = alternativePath(code, selected);
+        if (await regularFile(file)) await atomicWrite(`${file}.crop.json`, JSON.stringify(saved));
+      }
+    }
+    if (id === null || id === selected) {
+      await updateStatus(code, { imagePosition: saved });
+    }
+  }
+
   async function select(code, id) {
     const bytes = await readAlternative(code, id);
+    const imagePosition = await crop(code, id);
     const extension = path.extname(id).slice(1);
     // Publish completely before removing the previous format. Originals stay private.
     await atomicWrite(path.join(published, `${code}.${extension}`), bytes);
     await removeRasters(code, extension);
     await atomicWrite(path.join(codeDirectory(code), 'selection.json'), JSON.stringify({ selected: id }));
+    await updateStatus(code, { imagePosition });
   }
 
   async function reset(code) {
     await removeRasters(code);
     await atomicWrite(path.join(codeDirectory(code), 'selection.json'), JSON.stringify({ selected: null }));
+    await updateStatus(code, { imagePosition: undefined });
   }
 
   async function deleteAlternative(code, id) {
@@ -134,6 +198,7 @@ export async function createLibrary({ root = defaultRoot } = {}) {
     if (!(await regularFile(file))) throw invalid('Alternative not found.', 404);
     if (await selectedID(code) === id) await reset(code);
     await rm(file);
+    await rm(`${file}.crop.json`, { force: true });
   }
 
   async function active(code) {
@@ -146,19 +211,13 @@ export async function createLibrary({ root = defaultRoot } = {}) {
   }
 
   async function saveDescription(code, text) {
-    const current = status(code);
+    status(code);
     if (typeof text !== 'string' || !text.trim() || text.length > 20000) {
       throw invalid('Enter a description between 1 and 20,000 characters.');
     }
     const description = text.replace(/\r\n?/g, '\n').trim().split(/\n\s*\n/).map(p => p.trim());
-    const file = path.join(root, 'src/data/statuses.json');
-    const latest = JSON.parse(await readFile(file, 'utf8'));
-    const target = latest.find(entry => entry.code === current.code);
-    if (!target) throw invalid('Unknown status code.', 404);
-    target.description = description;
-    await atomicWrite(file, JSON.stringify(latest, null, 2) + '\n');
-    current.description = description;
+    await updateStatus(code, { description });
   }
 
-  return { statuses, status, list, upload, select, delete: deleteAlternative, reset, active, readAlternative, saveDescription };
+  return { statuses, status, list, upload, select, delete: deleteAlternative, reset, active, readAlternative, saveDescription, crop, saveCrop };
 }

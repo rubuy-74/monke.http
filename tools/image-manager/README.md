@@ -16,6 +16,22 @@ Paths resolve relative to this tool, not the current working directory.
 ## Workflow
 
 - Browse the status overview or use the status selector.
+- Adjust **Gallery framing** with the horizontal/vertical sliders. The live
+  4:3 preview matches the public gallery. **Center** resets both sliders to 50%;
+  press **Save framing** to persist it. One axis may have no visible effect when
+  the image already fits that dimension. There is no zoom or destructive crop.
+- Edit the published image directly, including pictures added outside the
+  manager. Use an alternative's **Edit framing** link to prepare its crop before
+  selecting it. Each alternative remembers its own framing; switching selections
+  restores it. Resetting to SVG clears published framing but keeps alternatives'
+  saved positions. Deleting an alternative removes its private crop metadata.
+- Published framing is stored as `imagePosition: { "x": 50, "y": 50 }` in
+  `src/data/statuses.json`. Commit that JSON with the selected pictures to publish
+  changes. The public site defaults to centered framing when this field is absent.
+  Private positions are saved alongside alternatives as `<uuid>.jpg.crop.json`
+  or `<uuid>.png.crop.json`. Original image bytes, raw image URLs, and the full
+  photo in the description dialog are unchanged. Refresh the development site
+  after saving; restart it if it has not picked up the updated JSON.
 - Use **Edit description** to open the description dialog. Blank lines separate
   paragraphs. Saving updates only that status's description in
   `src/data/statuses.json`; other fields and statuses are preserved. Restart the
@@ -62,5 +78,5 @@ Tests use temporary projects and do not change real images or status data.
 
 The public site reads the selected image at `/<code>` (for example `/404`),
 preferring JPEG/PNG over the SVG placeholder. Both gallery cards and description
-pages use that image URL. Refresh the site after making a selection. Rebuild and
+dialogs use that image URL. Refresh the site after making a selection. Rebuild and
 deploy the site normally to publish selected pictures to your hosted website.
